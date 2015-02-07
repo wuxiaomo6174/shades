@@ -6,10 +6,13 @@ var WIDTH=400;
 var HEIGHT=490;
 var BLOCKHEIGHT= 35;
 var BLOCKWIDTH=90;
+var ROW=12;
+var COL=4;
 var LineBorder =0;
-var SPEED= 50;
-var BasePostion={x:25,y:70,width:BLOCKWIDTH,height:BLOCKHEIGHT};
-
+var SPEED= 400;
+var BasePostion={x:20,y:70,width:BLOCKWIDTH,height:BLOCKHEIGHT};
+var IsMerging = false;
+var NUM_OF_CLEAR =4;
 var SIZE= 48; //BLCOK NUMBER 4*12
 var SIZEX= 4;
 var SIZEY= 12;
