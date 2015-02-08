@@ -11,12 +11,12 @@ var COL=4;
 var LineBorder =0;
 var SPEED= 400;
 var BasePostion={x:20,y:70,width:BLOCKWIDTH,height:BLOCKHEIGHT};
-var IsMerging = false;
+var IsMergingSignal = 0;
 var NUM_OF_CLEAR =4;
 var SIZE= 48; //BLCOK NUMBER 4*12
 var SIZEX= 4;
 var SIZEY= 12;
-var MIN_CLEAR_SIZE=3;
+
 var ScoreText=void 0 ; // equal to "undefined"
 var GlobalScore =0;
 var Matrix=[];
