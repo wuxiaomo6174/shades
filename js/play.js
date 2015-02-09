@@ -11,9 +11,9 @@
 //additional: use animations to change color
 "use strict";
 Game.Play = function () {
-    this.inputx = 0;
+
     this.activeBlock = void 0;
-    this.TweenPlayer = void 0;
+
 }
 Game.Play.prototype = {
     preload: function () {
@@ -33,7 +33,7 @@ Game.Play.prototype = {
         if (typeof level === 'undefined') {
             level = 5;
         }
-        var sprite = BLOCKS.create(x, y, 'green',colorIndex);
+        var sprite = BLOCKS.create(x, y, 'green', colorIndex);
         sprite.animations.add('green1', [0], 10, false);
         sprite.animations.add('green2', [1], 10, false);
         sprite.animations.add('green3', [2], 10, false);
@@ -70,43 +70,45 @@ Game.Play.prototype = {
         //3. add block group
         BLOCKS = game.add.group();
         BLOCKS.enableBody = true;
-        this.putBlock(12, 1, 3,0);
-        this.putBlock(12, 2, 3,0);
-        this.putBlock(12, 3, 2,0);
-        this.putBlock(12, 4, 3,0);
-        this.putBlock(11, 1, 2,0);
-        this.putBlock(11, 2, 2,0);
-        this.putBlock(11, 4, 2,0);
-        this.putBlock(11, 3, 1,0);
-        this.activeBlock = this.putBlock(1, 3, 1);
-        this.activeBlock.body.immovable = false;
+//        this.putBlock(12, 1, 3, 0);
+//        this.putBlock(12, 2, 3, 0);
+//        this.putBlock(12, 3, 2, 0);
+//        this.putBlock(12, 4, 3, 0);
+//        this.putBlock(11, 1, 2, 0);
+//        this.putBlock(11, 2, 2, 0);
+//        this.putBlock(11, 4, 2, 0);
+//        this.putBlock(11, 3, 1, 0);
+//        this.activeBlock = this.putBlock(1, 3, 1);
+//        this.activeBlock.body.immovable = false;
         //4. add light block that when click , it will show
         this.lightBlock = game.add.sprite(BasePostion.x, BasePostion.y, 'lightBlock');
         this.lightBlock.alpha = 0;
 
     },
     update: function () {
-      if (IsMergingSignal === 0) {
-          if(typeof this.activeBlock ==="undefined" ){ //if no active block then new one
-              BLOCKS.setAll("body.immovable",true);
-              this.activeBlock = this.putBlock(1, 2, 1);
+        if (IsMergingSignal === 0) {
+            if (typeof this.activeBlock === "undefined") { //if no active block then new one
+                BLOCKS.setAll("body.immovable", true);
+                this.activeBlock = this.putBlock(1, 2, 1,2);
 
-              this.activeBlock.body.immovable = false;
-          }
-          else {
-              //whether active block  collide block group?
-              if(game.physics.arcade.collide(this.activeBlock, BLOCKS, this.checkOverLap, null, this))
-              {
-                  //do overLap
-              }
-              else{//if no
-                  if(this.activeBlock.y===(HEIGHT-BLOCKHEIGHT)){//reach the bottom line
+                this.activeBlock.body.immovable = false;
+            }
+            else {
+                //whether active block  collide block group?
+                if (game.physics.arcade.collide(this.activeBlock, BLOCKS, this.checkOverLap, null, this)) {
+                    //do overLap
+                }
+                else {//if no
+                    if (this.activeBlock.y === (HEIGHT - BLOCKHEIGHT)) {//reach the bottom line
+                        this.checkBottomLineClear(this.activeBlock);
+                        this.activeBlock = undefined;
+                    }
+                    else {
 
-                      this.activeBlock =undefined;
-                  }
-              }
+                    }
+                }
 
-          }
+            }
         }
     },
 
@@ -114,19 +116,18 @@ Game.Play.prototype = {
 
         if (blockB.colorIndex === activeBlockA.colorIndex && activeBlockA.colorIndex !== 4) {
             IsMergingSignal++;
-
-             //block update function
+            //block update function
             BLOCKS.remove(activeBlockA);
             var tempBlock = game.add.sprite(blockB.x, blockB.y - BLOCKHEIGHT, 'green');
-            tempBlock.frame =  blockB.colorIndex;
-            this.activeBlock=undefined;
+            tempBlock.frame = blockB.colorIndex;
+            this.activeBlock = undefined;
             this.mergeTwoBlock(blockB, tempBlock);
 
         }
-        else{
-            if(activeBlockA.y===(blockB.y-BLOCKHEIGHT)){
-                activeBlockA.body.gravity.y =0;
-                this.activeBlock =undefined;
+        else {
+            if (activeBlockA.y === (blockB.y - BLOCKHEIGHT)) {
+                activeBlockA.body.gravity.y = 0;
+                this.activeBlock = undefined;
             }
         }
 
@@ -138,16 +139,16 @@ Game.Play.prototype = {
         fade.to({alpha: 0}, 1000);
         mov.onComplete.add(function () {
 
-            blockA.frame = blockA.colorIndex +1; //change to deeper color
-            blockA.colorIndex ++;
+            blockA.frame = blockA.colorIndex + 1; //change to deeper color
+            blockA.colorIndex++;
         }, this);
         fade.onComplete.add(function () {
             var nextRowBlock = this.getNextRowBlock(blockA);
-            if(nextRowBlock){//if can be merged
+            if (nextRowBlock) {//if can be merged
 
-                this.checkOverLap(blockA,nextRowBlock); //this is async execution
+                this.checkOverLap(blockA, nextRowBlock); //this is async execution
             }
-            else{
+            else {
                 this.checkLineClear(blockA); //this is  sync execution
 
                 this.activeBlock = undefined;
@@ -162,69 +163,97 @@ Game.Play.prototype = {
 
     getNextRowBlock: function (block) {
         var nextRowBlockCanbeMerged = null;
-        BLOCKS.forEach(function (item) {
-            if (item.x === block.x && ((item.y - block.y) === BLOCKHEIGHT) && item.colorIndex ===block.colorIndex) {
+        BLOCKS.forEachExists(function (item) {
+            if (item.x === block.x && ((item.y - block.y) === BLOCKHEIGHT) && item.colorIndex === block.colorIndex) {
                 nextRowBlockCanbeMerged = item;
                 return;
             }
-        }, this, true);
+        }, this);
 
-        return  nextRowBlockCanbeMerged ;
+        return  nextRowBlockCanbeMerged;
     },
-    checkLineClear:function(block){
+    checkBottomLineClear:function(block){
+        IsMergingSignal++;
+        this.checkLineClear(block);
+        IsMergingSignal--;
+    },
+    checkLineClear: function (block) {
         var clearList = [];
-        BLOCKS.forEach(function(item){
-            if(item.y===block.y){
+        BLOCKS.forEachExists(function (item) {
+            if (item.y === block.y && item.colorIndex ===block.colorIndex) {
                 clearList.push(item);
                 return;
             }
-        },this,true);
-        if(  clearList.length===NUM_OF_CLEAR){
+        }, this);
+        if (clearList.length === NUM_OF_CLEAR) {
             this.clearLine(clearList);
-            BLOCKS.setAll('body.velocity.y',100); //TODO-move it when in actual ,put it here for mock test
+            BLOCKS.setAll('body.velocity.y', 100); //TODO-move it when in actual ,put it here for mock test
 
         }
 
     },
 
     clearLine: function (clearList) {
-        for (var _i = 0; _i < NUM_OF_CLEAR; _i++)
-        {
+        for (var _i = 0; _i < NUM_OF_CLEAR; _i++) {
             BLOCKS.remove(clearList[_i]);
 
         }
 
     },
     move: function (point) {
-        if(IsMergingSignal===0&&this.activeBlock) {
+        if (IsMergingSignal === 0 && this.activeBlock) {
             if (point.x < BasePostion.x || point.x > (WIDTH - BasePostion.x)) {
                 this.inputx = "out of edge";
                 return;
             }
-            this.inputx = Math.floor((point.positionDown.x - BasePostion.x) / BasePostion.width);
+            var inputCol = Math.floor((point.positionDown.x - BasePostion.x) / BasePostion.width);
             //get inputx's highest block
             //then judge whether can be moved
-            this.lightBlock.x = BasePostion.x + this.inputx * BasePostion.width;
-            this.activeBlock.x = BasePostion.x + this.inputx * BasePostion.width;
-            game.add.tween(this.lightBlock).to({alpha: 0.5}, 100).to({alpha: 0}, 100).start();
+            var currectCol = Math.floor((this.activeBlock.x-BasePostion.x)/ BasePostion.width);
+            if(this.canBeMoved(currectCol,inputCol)===0){
+                this.lightBlock.x = BasePostion.x + inputCol * BasePostion.width;
+                this.activeBlock.x = BasePostion.x +inputCol * BasePostion.width;
+                game.add.tween(this.lightBlock).to({alpha: 0.5}, 100).to({alpha: 0}, 100).start();
+            }
+            else{
+                //TODO play a warning sound,like b~~
+            }
         }
     },
-    whetherExist:function(position){
-        BLOCKS.forEach(function(item){
-            if(item.x ===position['x']&&item.y===position['y']){
-                return true;
+    canBeMoved: function (from, to) {// check can be move from xxx column to yyy column
+        if (from === to)
+            return -1;
+        var direct = (to > from) ? 1 : -1;
+        var currentPosition = this.activeBlock.y;
+        var count = Math.abs(to-from);
+        for (var _from = from + direct, _to = to,_c=0; _c!=count; _from = _from + direct,_c++) {
+            var tempHighest = this.getHighest(_from);
+            if(tempHighest - currentPosition<=BasePostion.height) //if
+                return -1;
+        }
+        return 0;
+
+    },
+    getHighest: function (col) {
+        //BLOCKS.sort('x',Phaser.SORT_DESCENDING);
+        var Highest = HEIGHT;//pick a un existed num
+        BLOCKS.forEachExists(function (item){
+            if(col===Math.floor(((item.x-BasePostion.x)/BasePostion.width))){
+                if(item.y<Highest){ // actually y is more small ,more higher it is
+                    Highest=item.y;
+                }
             }
-        },this,true);
-        return false;
+        }, this);
+        return Highest;
     },
     over: function () {
         game.state.start('Over');
     },
     render: function () {
-        game.debug.text(this.inputx, 100, 200, "#000000");
+        //game.debug.text(this.inputx, 100, 200, "#000000");
         // game.debug.pointer(game.input.mousePointer);
-        game.debug.pointer(game.input.activePointer);
-       //game.debug.body(this.activeBlock);
+        //game.debug.pointer(game.input.activePointer);
+        //game.debug.body(this.activeBlock);
 
     }
 }
