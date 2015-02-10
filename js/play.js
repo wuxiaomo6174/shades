@@ -24,7 +24,10 @@ Game.Play.prototype = {
         }
     },
     getRandomColorIndex: function () {
-        return game.rnd.integerInRange(1, Object.keys(COLOR).length);
+        return game.rnd.integerInRange(0, Object.keys(COLOR).length-1);
+    },
+    getRandomColumn:function(){
+        return game.rnd.integerInRange(0,3);
     },
     initBlock: function (x, y, colorIndex, level) {
         if (typeof colorIndex === 'undefined') {
@@ -51,8 +54,8 @@ Game.Play.prototype = {
         return sprite;
     },
     putBlock: function (row, col, colorIndex, level) {
-        return  this.initBlock(BasePostion.x + (col - 1) * BasePostion.width,
-                BasePostion.y + BasePostion.height * (row - 1), colorIndex, level);
+        return  this.initBlock(BasePostion.x + (col ) * BasePostion.width,
+                BasePostion.y + BasePostion.height * (row ), colorIndex, level);
     },
     create: function () {
         //1.draw background & stage
@@ -89,7 +92,8 @@ Game.Play.prototype = {
         if (IsMergingSignal === 0) {
             if (typeof this.activeBlock === "undefined") { //if no active block then new one
                 BLOCKS.setAll("body.immovable", true);
-                this.activeBlock = this.putBlock(1, 2, 1,2);
+                //add check over here
+                this.activeBlock = this.putBlock(0, this.getRandomColumn(), this.getRandomColorIndex(),1);
 
                 this.activeBlock.body.immovable = false;
             }
@@ -182,17 +186,25 @@ Game.Play.prototype = {
         BLOCKS.forEachExists(function (item) {
             if (item.y === block.y && item.colorIndex ===block.colorIndex) {
                 clearList.push(item);
-                return;
+
             }
         }, this);
+        var clearLineY= block.y;
         if (clearList.length === NUM_OF_CLEAR) {
             this.clearLine(clearList);
-            BLOCKS.setAll('body.velocity.y', 100); //TODO-move it when in actual ,put it here for mock test
 
+            //move down up blocks
+            this.moveDownBlocks(clearLineY);
         }
 
     },
-
+    moveDownBlocks:function(height){
+        BLOCKS.forEachExists(function(item){
+            if(item.y<height){
+                item.y=item.y+BasePostion.height;
+            }
+        },this);// TODO make a tween
+    },
     clearLine: function (clearList) {
         for (var _i = 0; _i < NUM_OF_CLEAR; _i++) {
             BLOCKS.remove(clearList[_i]);
