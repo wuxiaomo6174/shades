@@ -13,7 +13,7 @@
 Game.Play = function () {
 
     this.activeBlock = void 0;
-
+    this.noMoveDownGroup = void 0;
 }
 Game.Play.prototype = {
     preload: function () {
@@ -24,10 +24,12 @@ Game.Play.prototype = {
         }
     },
     getRandomColorIndex: function () {
-        return game.rnd.integerInRange(0, Object.keys(COLOR).length-1);
+        //return game.rnd.integerInRange(0, Object.keys(COLOR).length-1);
+
+        return game.rnd.pick(Block_Color_Pick_Array);
     },
-    getRandomColumn:function(){
-        return game.rnd.integerInRange(0,3);
+    getRandomColumn: function () {
+        return game.rnd.integerInRange(0, 3);
     },
     initBlock: function (x, y, colorIndex, level) {
         if (typeof colorIndex === 'undefined') {
@@ -37,19 +39,12 @@ Game.Play.prototype = {
             level = 5;
         }
         var sprite = BLOCKS.create(x, y, 'green', colorIndex);
-        sprite.animations.add('green1', [0], 10, false);
-        sprite.animations.add('green2', [1], 10, false);
-        sprite.animations.add('green3', [2], 10, false);
-        sprite.animations.add('green4', [3], 10, false);
-        sprite.animations.add('green5', [4], 10, false);
         game.physics.arcade.enable(sprite);
-
         sprite.body.collideWorldBounds = true;
         sprite.body.gravity.y = SPEED * level;
 
         sprite.colorIndex = colorIndex;
-        //sprite.animations.play(COLOR[colorIndex]);
-//        sprite.frame = colorIndex;
+
         sprite.body.immovable = true;
         return sprite;
     },
@@ -62,6 +57,7 @@ Game.Play.prototype = {
         this.stage.backgroundColor = '#ffffff';
         var graphics = game.add.graphics(0, 0);
         graphics.beginFill(0x000000, 0.3);
+        //TODO narrow background
         graphics.drawRect(BasePostion.x + 0, BasePostion.y, WIDTH - 2 * BasePostion.x, HEIGHT - BasePostion.y);
         graphics.endFill();
 
@@ -73,28 +69,27 @@ Game.Play.prototype = {
         //3. add block group
         BLOCKS = game.add.group();
         BLOCKS.enableBody = true;
-//        this.putBlock(12, 1, 3, 0);
-//        this.putBlock(12, 2, 3, 0);
-//        this.putBlock(12, 3, 2, 0);
-//        this.putBlock(12, 4, 3, 0);
-//        this.putBlock(11, 1, 2, 0);
-//        this.putBlock(11, 2, 2, 0);
-//        this.putBlock(11, 4, 2, 0);
-//        this.putBlock(11, 3, 1, 0);
-//        this.activeBlock = this.putBlock(1, 3, 1);
-//        this.activeBlock.body.immovable = false;
+        this.noMoveDownGroup = game.add.group();
         //4. add light block that when click , it will show
         this.lightBlock = game.add.sprite(BasePostion.x, BasePostion.y, 'lightBlock');
         this.lightBlock.alpha = 0;
-
+        this.activeBlock = this.putBlock(11, 1, 4, 0);
+        this.activeBlock = this.putBlock(11, 2, 4, 0);
+        this.activeBlock = this.putBlock(11, 3, 4, 0);
+        this.activeBlock = this.putBlock(10, 1, 3, 0);
+        this.activeBlock = this.putBlock(10, 2, 3, 0);
+        this.activeBlock = this.putBlock(1,3, 3, 3);
+        this.activeBlock.body.immovable = false;
     },
     update: function () {
         if (IsMergingSignal === 0) {
             if (typeof this.activeBlock === "undefined") { //if no active block then new one
                 BLOCKS.setAll("body.immovable", true);
-                //add check over here
-                this.activeBlock = this.putBlock(0, this.getRandomColumn(), this.getRandomColorIndex(),1);
 
+                if (this.isOvered() === 0)
+                    this.over();
+                //this.activeBlock = this.putBlock(0, this.getRandomColumn(), this.getRandomColorIndex(),0.5);
+                this.activeBlock = this.putBlock(0, 0, 2, 3);
                 this.activeBlock.body.immovable = false;
             }
             else {
@@ -167,43 +162,77 @@ Game.Play.prototype = {
 
     getNextRowBlock: function (block) {
         var nextRowBlockCanbeMerged = null;
-        BLOCKS.forEachExists(function (item) {
+        var len = BLOCKS.length;
+        for (var _i = 0; _i < len; _i++) {
+            var item = BLOCKS.getChildAt(_i);
             if (item.x === block.x && ((item.y - block.y) === BLOCKHEIGHT) && item.colorIndex === block.colorIndex) {
                 nextRowBlockCanbeMerged = item;
-                return;
+                break;
             }
-        }, this);
+        }
+
 
         return  nextRowBlockCanbeMerged;
     },
-    checkBottomLineClear:function(block){
-        IsMergingSignal++;
+    checkBottomLineClear: function (block) {
+
         this.checkLineClear(block);
-        IsMergingSignal--;
+
     },
     checkLineClear: function (block) {
+        IsMergingSignal++;
         var clearList = [];
-        BLOCKS.forEachExists(function (item) {
-            if (item.y === block.y && item.colorIndex ===block.colorIndex) {
+        var len = BLOCKS.length;
+        for (var _i = 0; _i < len; _i++) {
+            var item = BLOCKS.getChildAt(_i);
+            if (item.y === block.y && item.colorIndex === block.colorIndex) {
                 clearList.push(item);
 
             }
-        }, this);
-        var clearLineY= block.y;
+        }
+
+        var clearLineY = block.y;
         if (clearList.length === NUM_OF_CLEAR) {
             this.clearLine(clearList);
 
             //move down up blocks
             this.moveDownBlocks(clearLineY);
         }
+        else {
+            IsMergingSignal--;
+        }
 
     },
-    moveDownBlocks:function(height){
-        BLOCKS.forEachExists(function(item){
-            if(item.y<height){
-                item.y=item.y+BasePostion.height;
+    moveDownBlocks: function (height) {
+        //var len = BLOCKS.length;
+
+        var tempSpriteList = [];
+        for (var _i = 0; _i < BLOCKS.length; _i++) {
+            var item = BLOCKS.getChildAt(_i);
+            if ((item.y < height)) {
+                tempSpriteList.push(item);
+
             }
-        },this);// TODO make a tween
+        }
+
+        var len = tempSpriteList.length;
+        if (len > 0) {
+
+            for (var _k = 0; _k < len; _k++) {
+                var down = game.add.tween(tempSpriteList[_k]).to({y: BasePostion.height.toString()}, 500);
+                if (_k === len - 1) {//if it is last tween
+                    down.onComplete.add(function () {
+                        IsMergingSignal--;
+                    }, this);
+                }
+                down.start();
+            }
+
+        }
+        else {
+
+            IsMergingSignal--;
+        }
     },
     clearLine: function (clearList) {
         for (var _i = 0; _i < NUM_OF_CLEAR; _i++) {
@@ -221,26 +250,30 @@ Game.Play.prototype = {
             var inputCol = Math.floor((point.positionDown.x - BasePostion.x) / BasePostion.width);
             //get inputx's highest block
             //then judge whether can be moved
-            var currectCol = Math.floor((this.activeBlock.x-BasePostion.x)/ BasePostion.width);
-            if(this.canBeMoved(currectCol,inputCol)===0){
+            var currectCol = Math.floor((this.activeBlock.x - BasePostion.x) / BasePostion.width);
+            var res = this.canBeMoved(currectCol, inputCol);
+            if (res === 0) {
                 this.lightBlock.x = BasePostion.x + inputCol * BasePostion.width;
-                this.activeBlock.x = BasePostion.x +inputCol * BasePostion.width;
+                this.activeBlock.x = BasePostion.x + inputCol * BasePostion.width;
                 game.add.tween(this.lightBlock).to({alpha: 0.5}, 100).to({alpha: 0}, 100).start();
             }
-            else{
+            else if (res === 1) {
+                //this.activeBlock.body.velocity.y = FASTSPEED;
+            }
+            else {
                 //TODO play a warning sound,like b~~
             }
         }
     },
     canBeMoved: function (from, to) {// check can be move from xxx column to yyy column
         if (from === to)
-            return -1;
+            return 1;
         var direct = (to > from) ? 1 : -1;
         var currentPosition = this.activeBlock.y;
-        var count = Math.abs(to-from);
-        for (var _from = from + direct, _to = to,_c=0; _c!=count; _from = _from + direct,_c++) {
+        var count = Math.abs(to - from);
+        for (var _from = from + direct, _to = to, _c = 0; _c != count; _from = _from + direct, _c++) {
             var tempHighest = this.getHighest(_from);
-            if(tempHighest - currentPosition<=BasePostion.height) //if
+            if (tempHighest - currentPosition <= BasePostion.height) //if
                 return -1;
         }
         return 0;
@@ -249,14 +282,27 @@ Game.Play.prototype = {
     getHighest: function (col) {
         //BLOCKS.sort('x',Phaser.SORT_DESCENDING);
         var Highest = HEIGHT;//pick a un existed num
-        BLOCKS.forEachExists(function (item){
-            if(col===Math.floor(((item.x-BasePostion.x)/BasePostion.width))){
-                if(item.y<Highest){ // actually y is more small ,more higher it is
-                    Highest=item.y;
+        var len = BLOCKS.length;
+        for (var _i = 0; _i < len; _i++) {
+            var item = BLOCKS.getChildAt(_i);
+            if (col === Math.floor(((item.x - BasePostion.x) / BasePostion.width))) {
+                if (item.y < Highest) { // actually y is more small ,more higher it is
+                    Highest = item.y;
                 }
             }
-        }, this);
+        }
+
         return Highest;
+    },
+    isOvered: function () {
+        var len = BLOCKS.length;
+        for (var _i = 0; _i < len; _i++) {
+            var item = BLOCKS.getChildAt(_i);
+            if (item.y <= BasePostion.y) {
+                return 0;
+            }
+        }
+        return -1;
     },
     over: function () {
         game.state.start('Over');
